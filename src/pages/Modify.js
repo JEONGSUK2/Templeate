@@ -1,13 +1,11 @@
 import React from 'react'
 
-function Main() {
-
-
+function Modify() {
   return (
     <>
-    <p>11</p> 
+    
     </>
   )
 }
 
-export default Main
+export default Modify

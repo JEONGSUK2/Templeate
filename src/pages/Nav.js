@@ -1,9 +1,9 @@
-import { faArrowRightFromBracket, faLock, faUser, faChevronDown } from '@fortawesome/free-solid-svg-icons'
+import { faArrowRightFromBracket, faLock, faUser, faChevronDown, faUserPen } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import React, { useState } from 'react'
+import { useSelector } from 'react-redux'
 import { NavLink } from 'react-router-dom'
 import styled from 'styled-components'
-
 
 
 const NavContent = styled.div`
@@ -110,7 +110,7 @@ const Container = styled.div`
     height: 100%;
     position: fixed;
     background-color: #f9fafb;
-    right: ${({$isopen})=> $isopen ? "0px" : "-320px"};
+    right: ${({ $isopen }) => $isopen ? "0px" : "-320px"};
     // 이 코드는 반드시 스타일 컴포넌트만 사용할 수 있다.
     top: 0;
     padding: 48px;
@@ -166,13 +166,14 @@ const StyledIcon = styled(FontAwesomeIcon)`
     transition: all 0,5s;
     font-size: 12px;
     vertical-align: baseline;
-    transform: rotate(${({$isopen}) => $isopen === "true" ? "180deg" : "0"});
+    transform: rotate(${({ $isopen }) => $isopen === "true" ? "180deg" : "0"});
 `
 
 function Nav() {
+    const userState = useSelector(state => state.user)
     const [isHeight, setIsHeight] = useState();
     const [isActive2, setIsActive2] = useState(false);
-    
+
     const SubMenuHeight = (e) => {
         const list = document.querySelectorAll(".sub_list")[e];
         const listLength = list.querySelectorAll("li").length;
@@ -319,7 +320,7 @@ function Nav() {
 
                                         }} onMouseOut={() => {
                                             setIsActive(-1)
-                                        }} key={i}><NavLink to={`/${e.link}`}>{e.title} <StyledIcon icon={faChevronDown} $isopen={isActive === i ? "true" : "false"}/></NavLink>
+                                        }} key={i}><NavLink to={`/${e.link}`}>{e.title} <StyledIcon icon={faChevronDown} $isopen={isActive === i ? "true" : "false"} /></NavLink>
                                             <NavSubmenu className={`sub_list`} $isopen={isActive === i ? "true" : "false"} $height={isHeight} >
                                                 {/* $는 속성을 보이게 하는걸 방지 (props)로 사용하기 위함 */}
                                                 {
@@ -339,17 +340,27 @@ function Nav() {
                     <NavMember>
                         <ul>
                             <li>
-                                <NavLink to="/login">
+                                <NavLink to={userState.data?.nickname ? "/logOut" : "/login"}>
                                     <FontAwesomeIcon icon={faLock}></FontAwesomeIcon>
-                                    로그인
+                                    {userState.data?.nickname ? "로그아웃" : "로그인"}
                                 </NavLink>
                             </li>
-                            <li>
-                                <NavLink to="/member">
-                                    <FontAwesomeIcon icon={faUser}></FontAwesomeIcon>
-                                    회원가입
-                                </NavLink>
-                            </li>
+                            {
+                                userState.data?.nickname ?
+                                    <li>
+                                        <NavLink to="/modify">
+                                            <FontAwesomeIcon icon={faUserPen}></FontAwesomeIcon>
+                                            정보수정
+                                        </NavLink>
+                                    </li>
+                                    :
+                                    <li>
+                                        <NavLink to="/member">
+                                            <FontAwesomeIcon icon={faUser}></FontAwesomeIcon>
+                                            회원가입
+                                        </NavLink>
+                                    </li>
+                            }
                         </ul>
                     </NavMember>
                 </NavWrap>
@@ -357,7 +368,6 @@ function Nav() {
 
             {/* 모바일 네비 */}
             <Hamburger onClick={() => {
-                
                 setIsActive2(!isActive2);
             }} className={isActive2 && 'on'} >
                 {/* 불리언일때만 ! 사용 가능 */}
@@ -390,14 +400,14 @@ function Nav() {
                     {
                         Nav.map((e, i) => {
                             return (
-                                <li key={i} onClick={()=>{
+                                <li key={i} onClick={() => {
                                     SubMenuHeight(i);
                                     (isActive !== i ? setIsActive(i) : setIsActive(-1));
                                 }}>{e.title}
                                     <Msumenu className='sub_list' $isopen={isActive === i ? "true" : "fasle"} $height={isHeight}>
                                         {
-                                            SubData[e.link].map((el,index)=>{
-                                                return(
+                                            SubData[e.link].map((el, index) => {
+                                                return (
                                                     <li key={index}><NavLink to={el.link}>{el.title}</NavLink>
                                                     </li>
                                                 )

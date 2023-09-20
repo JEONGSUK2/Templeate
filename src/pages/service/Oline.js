@@ -1,13 +1,11 @@
 import React from 'react'
 
-function Main() {
-
-
+function Oline() {
   return (
     <>
-    <p>11</p> 
+    <div>Oline</div>
     </>
   )
 }
 
-export default Main
+export default Oline

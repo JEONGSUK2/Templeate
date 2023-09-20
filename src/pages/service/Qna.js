@@ -1,13 +1,11 @@
 import React from 'react'
 
-function Main() {
-
-
+function Qna() {
   return (
     <>
-    <p>11</p> 
+    <div>Qna</div>
     </>
   )
 }
 
-export default Main
+export default Qna
