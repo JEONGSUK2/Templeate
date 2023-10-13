@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
 import styled from 'styled-components'
-import { firebaseAuth, signInWithEmailAndPassword  } from './../firebase'
+import { firebaseAuth, signInWithEmailAndPassword,  GoogleAuthProvider, GithubAuthProvider, signInWithPopup } from './../firebase'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { collection, doc, getDoc, getFirestore } from 'firebase/firestore'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { logIn, loggedIn } from '../store'
-
-
+import { faGithub, faGoogle } from '@fortawesome/free-brands-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
 const Container = styled.div`
   display: flex;
@@ -95,7 +95,25 @@ const Label = styled.label`
   transition: all 0.3s;
   pointer-events: none;
 `
-
+const SnsButton = styled.button`
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  bottom: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: ${props => props.$bgColor || 'gray'};
+  color: ${props => props.color || 'white'};
+  font-size: 16px;
+  width: 50%;
+  transition: 0.3s;
+  &:hover{
+    background-color: ${props => props.$hoverBgColor || '#666'};
+  }
+  svg{
+    margin-right: 8px;
+  }
+`
 
 function Login() {
 
@@ -103,13 +121,14 @@ function Login() {
   const [password, setPessword] = useState();
   const [error, setError] = useState();
   const navigate = useNavigate();
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
+  const userState = useSelector(state => state.user);
+  console.log(userState)
   const errorMsg = (errorCode) =>{
     const firebaseError = {
       'auth/user-not-found' : "사용자를 찾을 수 없습니다.",
       'auth/wrong-password' : "이메일 혹은 비밀번호가 잘못 되었습니다.",
       'auth/invalid-email'  : "유요하지 않는 이메일 입니다."
-
 
     }
     return firebaseError[errorCode] || '알 수 없는 에러가 발생했습니다.'
@@ -140,12 +159,49 @@ function Login() {
     }
   }
 
+  const snsLogin = async (data) =>{
+    let provider;
+
+    switch(data){
+      case 'google':
+        provider = new GoogleAuthProvider();
+      break;
+
+      case 'github' : 
+        provider = new GithubAuthProvider();
+      break;
+
+      default:
+        return;
+    }
+    try{
+        const result = await signInWithPopup(firebaseAuth, provider)
+        const user = result.user;
+        console.log(user)
+        sessionStorage.setItem("users", user.uid)
+        dispatch(logIn(user.uid))
+        navigate("/member", {
+          state:{
+            nickname : user.displayName,
+            email: user.email,
+            photoURL: user.photoURL
+          }
+        })
+
+
+
+
+    }catch(error){
+      setError(errorMsg(error))
+      console.log(error)
+    }
+  }
+
   return (
     <>
     <Container>
     <SignUp>
       <Title>로그인</Title>
-      {email} {password}
       <form onSubmit={LoginForm}>
       <InputWrapper>
       <Input type='email' className='email' placeholder='이메일' onChange={(e)=>{
@@ -164,6 +220,14 @@ function Login() {
       <InputWrapper>
         <NavLink to="/findemail">이메일/비밀번호 재설정</NavLink>
         <NavLink to="/member">회원가입</NavLink>
+      </InputWrapper>
+      <InputWrapper>
+        <SnsButton onClick={()=>{snsLogin('google')}} $bgColor="#db4437" $hoverBgColor="#b33225">
+          <FontAwesomeIcon  icon={faGoogle}/>Login With Google
+        </SnsButton >
+        <SnsButton onClick={()=>{snsLogin('github')}} $bgColor="#333" $hoverBgColor="#111">
+          <FontAwesomeIcon icon={faGithub}/> Login With Github
+        </SnsButton>
       </InputWrapper>
     </SignUp>
    </Container>

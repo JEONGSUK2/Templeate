@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { CKEditor } from '@ckeditor/ckeditor5-react';
 import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 import styled from 'styled-components';
-import { addDoc, collection, getFirestore, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, doc, getFirestore, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useSelector } from 'react-redux';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { faList, faPen } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Modal from './Modal';
+import { useEffect } from 'react';
+import { getStorage, ref , uploadBytesResumable, getDownloadURL} from 'firebase/storage'
+import { upload } from '@testing-library/user-event/dist/upload';
 
 const ButtonWrap = styled.div`
     display: flex;
@@ -34,13 +37,24 @@ const Button = styled.button`
    a{color: #fff}
    svg{margin-right: 12px;}
 `
-function Ckeditor({title}) {
+function Ckeditor({title, postData}) {
     const memberProfile = useSelector(state => state.user)
     const [isModal, setIsModal] = useState(false);
     const navigate = useNavigate();
     const [writeData, setWriteData] = useState("");
     const [message, setMessage] = useState("");
-    const {board} = useParams();
+    const [editorInstance, setEditorInstance] = useState(null);
+    const [fileUrl, setFileUrl] = useState("");
+    
+
+useEffect(()=>{
+  if(postData){
+    setWriteData(postData.content)
+  }
+}, [postData])
+// 초기화 하기
+
+    const { board, view } = useParams();
     const dataSubmit = async () => {
       if(title.length === 0){
         setIsModal(!isModal);
@@ -53,38 +67,92 @@ function Ckeditor({title}) {
       }
 
       try{
-        await addDoc(collection(getFirestore(), board), {
-            title : title,
-            content : writeData,
-            view: 1,
-            uid: memberProfile.uid,
-            name: memberProfile.data.name,
-            email: memberProfile.data.email,
-            nickname: memberProfile.data.nickname,
-            timestamp: serverTimestamp()
-            
-        })
+        if(board && view){
+          const postRef = doc(getFirestore(), board, view);
+          await updateDoc(postRef,{
+            title: title,
+            content: writeData
+          })
+          alert("게시글이 성공적으로 수정 되었습니다.")
+        }else{
+          const fileInput = document.querySelector("#file")[0];
+          console.log(fileInput)
+          if(fileInput){
+            uploadToFirebase(fileInput)
+          }
+          uploadToFirebase(fileInput); 
+          await addDoc(collection(getFirestore(), board), {
+              title : title,
+              content : writeData,
+              view: 1,
+              uid: memberProfile.uid,
+              name: memberProfile.data.name,
+              email: memberProfile.data.email,
+              nickname: memberProfile.data.nickname,
+              file : fileUrl,
+              timestamp: serverTimestamp()
+          })
+        }
         alert("게시글이 성공적으로 등록 되었습니다.")
         navigate(`/service/${board}`)
       }catch(error){
         setIsModal(!isModal);
         setMessage(error);
       }
+
+
+
       // setDoc은 firestore에서 이름(문서)을 지정할 수 있다.
       // addDoc는 랜덤으로 이름이 만들어진다.
     }
+    const uploadToFirebase = async (file) =>{
+      const storageRef = ref(getStorage(),'images/'+ file.name);
+      const upload = uploadBytesResumable(storageRef, file);
+      return new Promise((resolve, reject)=>{
+        upload.on('state_changed',
+          (snapshot) =>{
+            
+          },
+          (error) =>{
+            reject(error)
+          },
+          ()=>{
+            getDownloadURL(upload.snapshot.ref).then((result)=>{
+              resolve(result);
+              setFileUrl(result);
+
+            })
+          }
+        )
+      })
+    }
+
+    function UploadAdapter(editor){
+      editor.plugins.get("FileRepository").createUploadAdapter =
+      (loader) =>{
+        return{
+          upload : async () => {
+            const file = await loader.file;
+            const downURL = await uploadToFirebase(file)
+            return{ default : downURL}
+          }
+        }
+      }
+    }
+
+
   return (
     <>
     {isModal && <Modal error={message} onClose={()=>{setIsModal(false)}}/>}
-    
-    <CKEditor
-                 
+    <CKEditor 
                     editor={ClassicEditor}
                     data = {writeData}
                     config={{
                          placeholder: "내용을 입력하세요.",
+                         extraPlugins: [UploadAdapter]
                      }}
                     onReady={ editor => {
+                      setEditorInstance(editor);
                         // You can store the "editor" and use when it is needed.
                         console.log( 'Editor is ready to use!', editor );
                     } }
@@ -100,6 +168,7 @@ function Ckeditor({title}) {
                         console.log( 'Focus.', editor );
                     } }
                 />
+                <input type="file" id="file" />
                 <ButtonWrap>
                     <Button onClick={dataSubmit}><FontAwesomeIcon icon={faPen} />완료</Button>
                     <Button><Link to ="/service/notice"><FontAwesomeIcon icon={faList} />목록</Link></Button>

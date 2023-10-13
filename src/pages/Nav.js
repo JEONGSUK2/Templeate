@@ -200,7 +200,6 @@ function Nav() {
                 title: "오시는길",
                 link: "/company/directions"
             },
-
         ],
         business: [
             {
@@ -294,7 +293,6 @@ function Nav() {
 
     return (
         <>
-
             <NavContent>
                 <NavWrap>
                     <NavLogo>
@@ -317,12 +315,14 @@ function Nav() {
                                         <li onMouseOver={() => {
                                             setIsActive(i)
                                             SubMenuHeight(i)
-
+                                            
                                         }} onMouseOut={() => {
                                             setIsActive(-1)
                                         }} key={i}><NavLink to={`/${e.link}`}>{e.title} <StyledIcon icon={faChevronDown} $isopen={isActive === i ? "true" : "false"} /></NavLink>
                                             <NavSubmenu className={`sub_list`} $isopen={isActive === i ? "true" : "false"} $height={isHeight} >
                                                 {/* $는 속성을 보이게 하는걸 방지 (props)로 사용하기 위함 */}
+                                                
+
                                                 {
                                                     SubData[e.link].map((el, index) => {
                                                         return (
@@ -340,13 +340,13 @@ function Nav() {
                     <NavMember>
                         <ul>
                             <li>
-                                <NavLink to={userState.data?.nickname ? "/logOut" : "/login"}>
+                                <NavLink to={userState.uid ? "/logOut" : "/login"}>
                                     <FontAwesomeIcon icon={faLock}></FontAwesomeIcon>
-                                    {userState.data?.nickname ? "로그아웃" : "로그인"}
+                                    {userState.uid ? "로그아웃" : "로그인"}
                                 </NavLink>
                             </li>
                             {
-                                userState.data?.nickname ?
+                                userState.uid ? 
                                     <li>
                                         <NavLink to="/modify">
                                             <FontAwesomeIcon icon={faUserPen}></FontAwesomeIcon>

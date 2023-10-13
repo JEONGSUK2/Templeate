@@ -168,7 +168,6 @@ function FindEmail() {
       setModalOpen(!isModalOpen)
       return;
     }
-
   }
   const passwordEdit = () => {
     sendPasswordResetEmail(firebaseAuth, resultEmail)
@@ -205,7 +204,6 @@ function FindEmail() {
         </FindMail>
       </Container>
       {isModalOpen && <Modal error={message} onClose={()=>{setModalOpen(false)}} />}
-      
     </>
   )
 }

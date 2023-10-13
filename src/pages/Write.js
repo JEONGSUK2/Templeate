@@ -1,11 +1,11 @@
 
 import styled from 'styled-components';
 import Ckeditor from '../components/Ckeditor';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Modal from '../components/Modal';
 import { useSelector } from 'react-redux';
-
+import { doc, getDoc, getFirestore } from 'firebase/firestore';
 
 const Container = styled.div`
   width: 100%;
@@ -42,18 +42,6 @@ const Heading = styled.h3`
   }
 `;
 
-const UploadButton = styled.button`
-  height: 30px;
-  background-color: #c6c6c6;
-  color: white;
-  border-radius: 5px;
-  padding: 2px 10px;
-  font-size: 13px;
-
-  &:hover {
-    background-color: #2ed090;
-  }
-`;
 
 const ContentWrapper = styled.div`
   width: auto;
@@ -100,14 +88,42 @@ const ContentInput = styled.input`
   font-size: 13px;
 `;
 
-
 function Write() {
   const [txtTitle, setTxtTitle] = useState("");
-  const {board} = useParams()
+  const {board, view} = useParams()
   const boards = ["notice","online","qna","gallery"]
-  const [isModal, setIsModal] = useState(true);
+  const [isModal, setIsModal] = useState(view ? false : true);
   const navigate = useNavigate();
   const memberProfile = useSelector(state => state.user)
+  const [message, setMessage] = useState("")
+  const [postData, setPostData] = useState(null);
+  const uid = sessionStorage?.getItem("users")
+  const [userUid, setUserUid] = useState(uid)
+
+
+  useEffect(()=>{
+    if(board && view){
+      setIsModal(false)
+      const fetchData = async () => {
+        const postRef = doc(getFirestore(), board, view);
+        const postSnapShot = await getDoc(postRef);
+        if (postSnapShot.exists()) {
+            setPostData(postSnapShot.data())
+            setTxtTitle(postSnapShot.data().title)
+            if(uid !== postSnapShot.data().uid){
+              setIsModal(true)
+              setMessage("권한없음");
+              return;
+            }
+        } else {
+            setIsModal(true)
+            setMessage("해당 문서가 존재하지 않습니다.")
+        }
+    }
+    fetchData()
+    }
+
+  }, [board, view, uid])
 
   if(!memberProfile.loggedIn){
     return(
@@ -115,43 +131,48 @@ function Write() {
       {
         isModal && <Modal error = "로그인해주세요" onClose={()=>{
         setIsModal(false)}} />
-        }
+      }
       </>
     )
   }
-
   if(!boards.includes(board)){
     return(
       <>
         {
-        isModal && <Modal error = "잘못된 게시판입니다!" onClose={()=>{
-        setIsModal(false)}} />
+          isModal && <Modal error = "잘못된 게시판입니다!" onClose={()=>{
+          setIsModal(false)}} />
         }
       </>
     )
   }
- 
   return (
+    <>
+    {
+      isModal && view && <Modal error = "로그인 이후 이용해주시길 바랍니다." onClose={()=>{
+      setIsModal(false); navigate('/login')}} />
+    }
     <Container>
       <InnerContainer>
         <Header>
-          <Heading>글쓰기</Heading>
-          <UploadButton>등록하기</UploadButton>
+          <Heading>{board && view ? "글수정" : "글쓰기"}</Heading>
         </Header>
         <ContentWrapper>
           <ContentInner>
             <Title>제목</Title>
-            <TextInput type="text" onChange={(e)=>{setTxtTitle(e.target.value)}} />
+            <TextInput defaultValue={postData && postData.title} type="text" onChange={(e)=>{setTxtTitle(e.target.value)}} />
           </ContentInner>
           <ContentInputWrapper>
             <ContentLabel>내용</ContentLabel>
-            <Ckeditor title={txtTitle}/>
+            <Ckeditor title={txtTitle} postData={postData}/>
           </ContentInputWrapper>
         </ContentWrapper>
       </InnerContainer>
     </Container>
+    </>
   );
 }
 
-
 export default Write;
+
+// 내가 쓴글 체크하기 내가쓴글이 아니라면 수정/삭제가 보이지않게
+// id가 다를 경우 본인 수정/삭제가 되면안됨
